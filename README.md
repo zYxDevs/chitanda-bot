@@ -1,5 +1,5 @@
 # Chitanda Bot
-![pov: you](image.png)
+![pov: you](docs/image.png)
 
 ## About this bot
 This bot using [https://github.com/WhiskeySockets/Baileys](https://github.com/WhiskeySockets/Baileys) library for communicating with Whatsapp.

@@ -6,20 +6,43 @@ import {
 } from "@whiskeysockets/baileys";
 import handler from "./handler.js";
 
-const { state, saveCreds } = await useMultiFileAuthState("login");
-const { version } = await fetchLatestBaileysVersion();
+async function chitandaBotInit(reconnectAttempt = 0) {
+  const { state, saveCreds } = await useMultiFileAuthState("login");
+  const { version } = await fetchLatestBaileysVersion();
+  const maxReconnectAttempts = 5;
+  const reconnectDelay = 5000;
 
-export const sock = makeWASocket({
-  version,
-  printQRInTerminal: true,
-  auth: state,
-});
+  const sock = makeWASocket({
+    version,
+    printQRInTerminal: true,
+    auth: state,
+  });
 
-async function chitandaBotInit() {
   sock.ev.on("connection.update", async (update) => {
     const { connection, lastDisconnect } = update;
+
     if (connection === "close") {
-      var _a, _b;
+      const shouldReconnect =
+        lastDisconnect?.error?.output?.statusCode !==
+        DisconnectReason.loggedOut;
+      console.log(
+        "connection closed due to ",
+        lastDisconnect?.error,
+        ", reconnecting ",
+        shouldReconnect
+      );
+      if (shouldReconnect && reconnectAttempt < maxReconnectAttempts) {
+        console.log(`Reconnect attempt #${reconnectAttempt + 1}`);
+        setTimeout(() => {
+          chitandaBotInit(reconnectAttempt + 1);
+        }, reconnectDelay);
+      } else {
+        console.log(
+          "Connection closed. You are logged out or max attempts reached."
+        );
+      }
+
+      /* var _a, _b;
       var shouldReconnect =
         ((_b =
           (_a = lastDisconnect.error) === null || _a === void 0
@@ -28,14 +51,14 @@ async function chitandaBotInit() {
           ? void 0
           : _b.statusCode) !== DisconnectReason.loggedOut;
       console.log(
-        "connection closed due to ",
+        "connection closed due to ",    
         lastDisconnect.error,
         ", reconnecting ",
         shouldReconnect
       );
       if (shouldReconnect) {
         chitandaBotInit();
-      }
+      } */
     } else if (connection === "open") {
       console.log("opened connection");
     }
@@ -65,6 +88,8 @@ async function chitandaBotInit() {
       }
     });
   });
+
+  return sock;
 }
 
-chitandaBotInit();
+export const sock = await chitandaBotInit();
